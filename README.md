@@ -6,6 +6,9 @@ Pokemon shiny list custom map to use with PoracleJS
 **New Method (August 2021):**<br />
 Poracle will now load shinyPossible.json without it needing to be copied into the CustomMaps directory. Thank you Jabes for making this possible.
 
+**Automatic Updates:**<br />
+`shinyPossible.json` is regenerated every 6 hours by a GitHub Action (`.github/workflows/update-shiny.yml`) from the [Leek Duck shiny list](https://leekduck.com/shiny/) and the [Pokémon GO Hub shiny checklist](https://db.pokemongohub.net/tools/shiny-checklist), with form ids taken from the WatWowMap masterfile. A shiny listed by either site is included, except ones Leek Duck dates in the future, which are left out until that date (UTC). To force a key in or out, edit `scripts/overrides.json`. To run it locally: `python3 scripts/update_shiny.py`.
+
 **Monster, Raid & Quest DTS**<br />
 **Option 1:** `{{shinyPossibleEmoji}}` - This will use the default sparkles emoji, but can be modified in emoji.json<br />
 **Option 2:** `{{#if shinyPossible}} ✨{{/if}}` - You can replace this emoji with any other text or emoji
