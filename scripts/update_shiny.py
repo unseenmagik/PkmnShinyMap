@@ -15,6 +15,11 @@ Poracle treats a key as "shiny possible" if it exists in the map, checking
 id key only when every one of its forms is shiny; otherwise each shiny form is
 listed individually.
 
+Costumes (a costume, not a form, e.g. Piplup's Halloween 2021 outfit) get a
+"<pokemonId>_c<costumeId>" key each, with the masterfile's costume ids. Poracle
+never looks those up; PokePilot does, and once the map has any it treats a
+costume without a key as unable to be shiny.
+
 Manual tweaks go in scripts/overrides.json:
   "include": keys to always add (e.g. "808")
   "exclude": keys to always drop, or a bare id to drop the whole species
@@ -106,6 +111,31 @@ def shiny_codes(asset_names):
     return shinies
 
 
+def masterfile_costumes(costumes):
+    """Costume proto name -> id, from the masterfile's costume list."""
+    out = {}
+    for cid, c in costumes.items():
+        if int(cid) > 0 and c.get("proto"):
+            out[c["proto"]] = int(cid)
+    return out
+
+
+def shiny_costumes(asset_names, costume_ids):
+    """dex -> set of costume ids with shiny released. A code the masterfile
+    doesn't have (some are form ids instead, e.g. Pikachu's FALL_2019) is
+    left to shiny_codes."""
+    out = {}
+    for aa_fn in asset_names:
+        _, costume = parse_aa_fn(aa_fn)
+        for code in costume:
+            cid = costume_ids.get(code)
+            if cid is None:
+                cid = costume_ids.get(code + "_NOEVOLVE", costume_ids.get(code.removesuffix("_NOEVOLVE")))
+            if cid is not None:
+                out.setdefault(int(aa_fn.split(".")[0][2:]), set()).add(cid)
+    return out
+
+
 def is_base_form(form_id, proto, default_form_id):
     return form_id == 0 or form_id == default_form_id or proto.endswith(BASE_LIKE_SUFFIXES)
 
@@ -114,7 +144,7 @@ def form_matches(proto, code):
     return proto == code or proto.endswith("_" + code)
 
 
-def build_map(shinies, pokemon, overrides):
+def build_map(shinies, pokemon, overrides, costumes=None):
     out = {}
     exclude = set(overrides.get("exclude", []))
     for dex in sorted(shinies):
@@ -156,6 +186,12 @@ def build_map(shinies, pokemon, overrides):
         for form_id in sorted(shiny_ids):
             out[f"{dex}_{form_id}"] = SPARKLE
 
+    for dex, ids in (costumes or {}).items():
+        if str(dex) in exclude:
+            continue
+        for cid in sorted(ids):
+            out[f"{dex}_c{cid}"] = SPARKLE
+
     for key in exclude:
         out.pop(key, None)
     for key in overrides.get("include", []):
@@ -167,6 +203,8 @@ def sort_key(key):
     if key.startswith("***"):
         return (0, 0, 0)  # comments keep their position via stable ordering below
     dex, _, form = key.partition("_")
+    if form.startswith("c"):
+        return (int(dex), 2, int(form[1:]))
     return (int(dex), 1, int(form) if form else -1)
 
 
@@ -206,20 +244,24 @@ def main():
         print(f"::warning::GO Hub failed: {err}")
     if not sources:
         sys.exit("No shiny source available; not updating")
-    pokemon = fetch_json(MASTERFILE_URL)["pokemon"]
+    masterfile = fetch_json(MASTERFILE_URL)
+    pokemon = masterfile["pokemon"]
+    costume_ids = masterfile_costumes(masterfile.get("costumes", {}))
 
     overrides = {}
     if os.path.exists(OVERRIDES):
         with open(OVERRIDES, encoding="utf-8") as f:
             overrides = json.load(f)
 
-    shiny_map = ordered(build_map(shiny_codes(released), pokemon, overrides))
+    shiny_map = ordered(build_map(shiny_codes(released), pokemon, overrides,
+                                    shiny_costumes(released, costume_ids)))
     result = {"name": "shinyPossible", "map": shiny_map}
     with open(OUTPUT, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=3)
         f.write("\n")
     species = len({k.split("_")[0] for k in shiny_map if not k.startswith("***")})
-    print(f"Wrote {OUTPUT}: {species} species, {len(shiny_map)} keys")
+    costume_keys = sum(1 for k in shiny_map if "_c" in k and not k.startswith("***"))
+    print(f"Wrote {OUTPUT}: {species} species, {len(shiny_map)} keys, {costume_keys} costumes")
 
 
 if __name__ == "__main__":

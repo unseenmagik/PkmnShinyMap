@@ -7,7 +7,7 @@ Pokemon shiny list custom map to use with PoracleJS
 Poracle will now load shinyPossible.json without it needing to be copied into the CustomMaps directory. Thank you Jabes for making this possible.
 
 **Automatic Updates:**<br />
-`shinyPossible.json` is regenerated every 6 hours by a GitHub Action (`.github/workflows/update-shiny.yml`) from the [Leek Duck shiny list](https://leekduck.com/shiny/) and the [Pokémon GO Hub shiny checklist](https://db.pokemongohub.net/tools/shiny-checklist), with form ids taken from the WatWowMap masterfile. A shiny listed by either site is included, except ones Leek Duck dates in the future, which are left out until that date (UTC). To force a key in or out, edit `scripts/overrides.json`. To run it locally: `python3 scripts/update_shiny.py`.
+`shinyPossible.json` is regenerated every 6 hours by a GitHub Action (`.github/workflows/update-shiny.yml`) from the [Leek Duck shiny list](https://leekduck.com/shiny/) and the [Pokémon GO Hub shiny checklist](https://db.pokemongohub.net/tools/shiny-checklist), with form ids taken from the WatWowMap masterfile. A shiny listed by either site is included, except ones Leek Duck dates in the future, which are left out until that date (UTC). Costume shinies (a costume rather than a form, e.g. Piplup's Halloween 2021 outfit) are listed as `<pokemonId>_c<costumeId>` keys; Poracle never looks those up, so they don't change its output. To force a key in or out, edit `scripts/overrides.json`. To run it locally: `python3 scripts/update_shiny.py`.
 
 **Monster, Raid & Quest DTS**<br />
 **Option 1:** `{{shinyPossibleEmoji}}` - This will use the default sparkles emoji, but can be modified in emoji.json<br />
